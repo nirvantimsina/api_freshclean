@@ -1,89 +1,77 @@
 using Microsoft.AspNetCore.Mvc;
-using api_freshclean.Data;
 using api_freshclean.DTOs;
-using api_freshclean.Models;
-using Microsoft.EntityFrameworkCore;
+using api_freshclean.Services;
 
 namespace api_freshclean.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-
 public class QuoteController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IQuoteService _quoteService;
 
-    public QuoteController(AppDbContext context)
+    public QuoteController(IQuoteService quoteService)
     {
-        _context = context;
+        _quoteService = quoteService;
     }
 
+    // GET: api/quote
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var quotes = await _context.Quotes.ToListAsync();
+        var quotes = await _quoteService.GetAllAsync();
         return Ok(quotes);
     }
 
+    // GET: api/quote/5
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var quote = await _context.Quotes.FindAsync(id);
-        if (quote == null) return NotFound(new { message = "Quote Not Found!" });
+        var quote = await _quoteService.GetByIdAsync(id);
+        if (quote == null)
+            return NotFound(new { message = "Quote not found." });
 
         return Ok(quote);
     }
 
+    // POST: api/quote
     [HttpPost]
-    public async Task<IActionResult> Create(CreateQuoteDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateQuoteDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        var quote = new Quote
-        {
-            Name = dto.Name,
-            Phone = dto.Phone,
-            Email = dto.Email,
-            Service = dto.Service,
-            Frequency = dto.Frequency,
-            Message = dto.Message
-        };
+        var quote = await _quoteService.CreateAsync(dto);
 
-        _context.Quotes.Add(quote);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = quote.Id }, quote);
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = quote!.Id },
+            quote
+        );
     }
 
+    // PUT: api/quote/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, CreateQuoteDto dto)
+    public async Task<IActionResult> Update(int id, [FromBody] CreateQuoteDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-        
-        var quote = await _context.Quotes.FindAsync(id);
-        if (quote == null) return NotFound(new { message = " Quote Not Found!" });
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        quote.Name = dto.Name;
-        quote.Phone = dto.Phone;
-        quote.Email = dto.Email;
-        quote.Service = dto.Service;
-        quote.Frequency = dto.Frequency;
-        quote.Message = dto.Message;
+        var existing = await _quoteService.UpdateAsync(id, dto);
+        if (existing == null)
+            return NotFound(new { message = "Quote not found." });
 
-
-        await _context.SaveChangesAsync();
-        return Ok(quote);
+        return Ok(existing);
     }
 
-
+    // DELETE: api/quote/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var quote = await _context.Quotes.FindAsync(id);
-        if (quote == null) return NotFound( new {message = "Quote Not Found"});
+        var deleted = await _quoteService.DeleteAsync(id);
+        if (!deleted)
+            return NotFound(new { message = "Quote not found." });
 
-        _context.Remove(quote);
-        await _context.SaveChangesAsync();
         return NoContent();
     }
 }
