@@ -1,7 +1,5 @@
 using api_freshclean.Data;
-using api_freshclean.DTOs;
 using api_freshclean.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace api_freshclean.Repositories;
